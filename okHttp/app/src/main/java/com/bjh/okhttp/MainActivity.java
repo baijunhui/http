@@ -5,10 +5,12 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.bjh.okhttp.data.Result;
@@ -17,6 +19,7 @@ import com.bjh.okhttp.http.HttpServer;
 import com.bjh.okhttp.http.ResponseCallback;
 import com.google.gson.reflect.TypeToken;
 
+import java.io.File;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -25,8 +28,11 @@ public class MainActivity extends Activity {
 
     String textUrl = "http://xhweb.yy.com/3.6.123/android/feed/getTopicList?appId=1001&sign=sign&data=%7B%22start%22%3A0%2C%22size%22%3A100%7D";
     String imageUrl = "http://hiphotos.baidu.com/%B3%F5%BC%B6%BE%D1%BB%F7%CA%D6/pic/item/929b56443840bfc6b3b7dc64.jpg";
+    String apkUrl = "https://qd.myapp.com/myapp/qqteam/qq_hd/apad/home/qqhd_release_forhome.apk";
+
 
     ImageView imageView;
+    TextView progressView;
     Handler handler = new Handler();
 
     @Override
@@ -34,6 +40,7 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        progressView = (TextView) findViewById(R.id.tv_download_progress);
         imageView = (ImageView) findViewById(R.id.iv_async_task);
 
         findViewById(R.id.tv_ok_http).setOnClickListener(new View.OnClickListener() {
@@ -49,6 +56,49 @@ public class MainActivity extends Activity {
                 queryImage();
             }
         });
+
+        findViewById(R.id.tv_download).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                download();
+            }
+        });
+
+        findViewById(R.id.tv_download_with_progress).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                downloadWithProgress();
+            }
+        });
+    }
+
+    private void downloadWithProgress() {
+        String localDir = Environment.getExternalStorageDirectory() + File.separator + "bjh" + File.separator;
+        HttpServer.instance().downloadFile(apkUrl, localDir, new ProgressCallback.DownProgressCallback() {
+            @Override
+            public void onFail(final String msg) {
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(MainActivity.this, msg, Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+
+            @Override
+            public void onDownloadProgress(final float progress) {
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        progressView.setText(String.valueOf((int) (progress * 100)) + "%");
+                    }
+                });
+            }
+        });
+    }
+
+    private void download() {
+
     }
 
     private void queryData() {

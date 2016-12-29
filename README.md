@@ -261,6 +261,58 @@ OkHttp是现在http请求很火的一个三方库，我们写了一个demo，对
 
 
 
+9、我们添加了下载和上传功能，具体可以看下demo里的HttServer里面的代码，里面有具体代码实现，下面说下原理
+
+  先说下下载
+  1）拿到结果的流（InputStream)，通过response.body().byteStream()可以拿到我们想要的流
+  2）我们对拿到的流进行读取，通过OutputStream写入到文件中
+  3）写入的过程中，我们可以查看中间进度
+  4）最终有结果了，通知界面，这个要记住，请求是异步的，我们要通过message来通知界面修改
+
+  再说下上传
+  1）上传文件，我们用的是post请求
+  2）使用post请求，我们必须使用RequestBody参数传入，所以我们创建了body参数传入post
+  3）创建body参数有两种情况
+    (1) RequestBody.create(MediaType.parse("application/octet-stream"), localFile);我们直接用RequestBody的create方法构造一个body对象，第一个参数是和服务器进行协商定义的，现在传的是流，第二个是你要上传的file文件
+    (2) 有多个参数要上传的时候，我们使用MultipartBody.Builder来构造body对象，这个builder可以添加多个参数addFormDataPart这个函数
+    这个函数有两个不同参数的方法：一个是普通的，传key，和value就行，另一个是上传文件用的，第一个传key，第二个传文件的name，第三个传RequestBody.create(null, file)构造的一个body对象
+
+  4）通过builder.build()构造出了body对象
+
+  还有一种特殊情况我们要说下，就是我要查看上传进度的话，这个特殊解决
+  这个和前面的都是相同的，就是第三步有点不同
+  第三步中构造body的过程不同
+  这个我们要自己new一个ReqestBody并且重写writeTo这个方法，把数据内容重写到BufferedSink sink.write(byte)中
+  Source source = null;
+    try {
+        source = Okio.source(file);
+
+        Buffer buffer = new Buffer();
+        long totalLength = contentLength();
+
+        long current = 0;
+        for (long readCount; (readCount = source.read(buffer, 2048)) != -1; ) {
+            sink.write(buffer, readCount);
+            current += readCount;
+
+            callback.onProgress((int) (current / totalLength));
+        }
+
+    } catch (Exception e) {
+        e.printStackTrace();
+    } finally {
+        if (source != null) {
+            source.close();
+        }
+    }
+
+    拿到了file的长度，读入的长度来判断百分比
+
+
+
+
+
+
 
 
 
